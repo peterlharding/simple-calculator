@@ -1,6 +1,35 @@
+# IDEs
+.vscode/
+.idea.
+
+# macOS
+.DS_STore
+
+# Archives
+*.7z
+*.gz
+*.rar
+*.tar
+*.tz
+*.zip
+
+# Sensitive
+*.crt
+*.csr
+*.key
+*.pem
+
+# Just Ignore
+*.x
+*.ignore
+*-ignore
+
+
+# =============================================================================
 # Xcode
 #
 # gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
+# -----------------------------------------------------------------------------
 
 ## User settings
 xcuserdata/
