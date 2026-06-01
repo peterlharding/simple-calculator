@@ -60,8 +60,23 @@ struct ContentView: View {
                             ForEach(rowArray, id: \.0) { rowIndex, rowButtons in
                                 let colArray = Array(rowButtons.enumerated())
                                 HStack(spacing: buttonSpacing) {
-                                    ForEach(colArray, id: \.0) { colIndex, button in
-                                        CalculatorButtonView(button: button, size: buttonSize) { buttonTapped(button) }
+                                    if rowIndex == buttons.count - 1 {
+                                        // Custom layout for last row: make "0" double-width and move "=" to the far right
+                                        let spacing = buttonSpacing
+                                        // Identify buttons in the row
+                                        let zero = CalculatorButton.digit("0")
+                                        let dot = CalculatorButton.dot
+                                        let plus = CalculatorButton.operation("+")
+                                        let equals = CalculatorButton.equals
+
+                                        CalculatorButtonView(button: zero, size: buttonSize, width: buttonSize * 2 + spacing) { buttonTapped(zero) }
+                                        CalculatorButtonView(button: dot, size: buttonSize, width: nil) { buttonTapped(dot) }
+                                        CalculatorButtonView(button: plus, size: buttonSize, width: nil) { buttonTapped(plus) }
+                                        CalculatorButtonView(button: equals, size: buttonSize, width: nil) { buttonTapped(equals) }
+                                    } else {
+                                        ForEach(colArray, id: \.0) { colIndex, button in
+                                            CalculatorButtonView(button: button, size: buttonSize, width: nil) { buttonTapped(button) }
+                                        }
                                     }
                                 }
                             }
@@ -90,8 +105,23 @@ struct ContentView: View {
                             ForEach(rowArray, id: \.0) { rowIndex, rowButtons in
                                 let colArray = Array(rowButtons.enumerated())
                                 HStack(spacing: buttonSpacing) {
-                                    ForEach(colArray, id: \.0) { colIndex, button in
-                                        CalculatorButtonView(button: button, size: buttonSize) { buttonTapped(button) }
+                                    if rowIndex == buttons.count - 1 {
+                                        // Custom layout for last row: make "0" double-width and move "=" to the far right
+                                        let spacing = buttonSpacing
+                                        // Identify buttons in the row
+                                        let zero = CalculatorButton.digit("0")
+                                        let dot = CalculatorButton.dot
+                                        let plus = CalculatorButton.operation("+")
+                                        let equals = CalculatorButton.equals
+
+                                        CalculatorButtonView(button: zero, size: buttonSize, width: buttonSize * 2 + spacing) { buttonTapped(zero) }
+                                        CalculatorButtonView(button: dot, size: buttonSize, width: nil) { buttonTapped(dot) }
+                                        CalculatorButtonView(button: plus, size: buttonSize, width: nil) { buttonTapped(plus) }
+                                        CalculatorButtonView(button: equals, size: buttonSize, width: nil) { buttonTapped(equals) }
+                                    } else {
+                                        ForEach(colArray, id: \.0) { colIndex, button in
+                                            CalculatorButtonView(button: button, size: buttonSize, width: nil) { buttonTapped(button) }
+                                        }
                                     }
                                 }
                             }
@@ -215,13 +245,14 @@ enum CalculatorButton: Equatable {
 struct CalculatorButtonView: View {
     let button: CalculatorButton
     let size: CGFloat
+    let width: CGFloat?
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Text(buttonTitle)
                 .font(.system(size: 26, weight: .semibold))
-                .frame(width: size, height: size)
+                .frame(width: width ?? size, height: size)
                 .background(buttonBackground)
                 .foregroundColor(buttonForeground)
                 .cornerRadius(8)
