@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+// ---------------------------------------------------------------------------
+
 struct ContentView: View {
     @State private var display: String = "0"
     @State private var accumulator: Double = 0
@@ -14,22 +16,63 @@ struct ContentView: View {
     @State private var lastInputWasOperator = false
     @State private var memory: Double = 0
     @State private var keyPressed: String = ""
+    @State private var displayPrecision: Int? = nil // nil means no precision limit
 
-    let buttons: [[CalculatorButton]] = [
-        [.memory("M+"), .memory("M-"), .memory("MR"), .memory("MC"), .backspace],
-        [.digit("7"), .digit("8"), .digit("9"), .operation("/"), .clearEntry],
-        [.digit("4"), .digit("5"), .digit("6"), .operation("*"), .clear],
-        [.digit("1"), .digit("2"), .digit("3"), .operation("-"), .blank],
-        [.digit("0"), .dot, .equals, .operation("+"), .blank]
+
+    let totalButtonColumns = 6
+    let totalButtonRows = 5
+
+    // Define the keys with spans. Row/column indices are 0-based in this matrix.
+    let keys: [[KeySpec]] = [
+        [
+            KeySpec(button: .precision, span: .init()),
+            KeySpec(button: .memory("MC"), span: .init()),
+            KeySpec(button: .memory("MR"), span: .init()),
+            KeySpec(button: .memory("M-"), span: .init()),
+            KeySpec(button: .memory("M+"), span: .init()),
+            KeySpec(button: .operation("√"), span: .init())
+        ],
+        [
+            KeySpec(button: .toggleSign, span: .init()),
+            KeySpec(button: .digit("7"), span: .init()),
+            KeySpec(button: .digit("8"), span: .init()),
+            KeySpec(button: .digit("9"), span: .init()),
+            KeySpec(button: .operation("*"), span: .init()),
+            KeySpec(button: .operation("%"), span: .init())
+        ],
+        [
+            // C at its current position (row 2, col 0) spanning 2 rows
+            KeySpec(button: .clear, span: .init(rows: 2)),
+            KeySpec(button: .digit("4"), span: .init()),
+            KeySpec(button: .digit("5"), span: .init()),
+            KeySpec(button: .digit("6"), span: .init()),
+            KeySpec(button: .operation("-"), span: .init()),
+            KeySpec(button: .operation("/"), span: .init())
+        ],
+        [
+            // Row 3: Column 0 is occupied by C's span from row 2
+            KeySpec(button: .digit("1"), span: .init()),
+            KeySpec(button: .digit("2"), span: .init()),
+            KeySpec(button: .digit("3"), span: .init()),
+            // '+' starting here (row 3, col 3) spanning 2 rows
+            KeySpec(button: .operation("+"), span: .init(rows: 2)),
+            // '=' starting here (row 3, col 4) spanning 2 rows
+            KeySpec(button: .equals, span: .init(rows: 2))
+        ],
+        [
+            KeySpec(button: .backspace, span: .init()),
+            // 0 double width
+            KeySpec(button: .digit("0"), span: .init(cols: 2)),
+            KeySpec(button: .dot, span: .init())
+            // Columns 4 and 5 are occupied by '+' and '=' spanning from row 3
+        ]
     ]
 
     var body: some View {
         GeometryReader { geometry in
             let isLandscape = geometry.size.width > geometry.size.height
             let buttonSpacing: CGFloat = 12
-            let totalButtonColumns = 5
-            let totalButtonRows = 5
-
+            // Use defined totalButtonColumns and totalButtonRows constants
             let buttonSize: CGFloat = isLandscape
                 ? (geometry.size.height - 60 - 32 - buttonSpacing * CGFloat(totalButtonRows - 1)) / CGFloat(totalButtonRows)
                 : (geometry.size.width - 32 - buttonSpacing * CGFloat(totalButtonColumns - 1)) / CGFloat(totalButtonColumns)
@@ -55,32 +98,15 @@ struct ContentView: View {
                         }
                         .frame(width: geometry.size.width * 0.4)
                         // Button grid
-                        VStack(spacing: buttonSpacing) {
-                            let rowArray = Array(buttons.enumerated())
-                            ForEach(rowArray, id: \.0) { rowIndex, rowButtons in
-                                let colArray = Array(rowButtons.enumerated())
-                                HStack(spacing: buttonSpacing) {
-                                    if rowIndex == buttons.count - 1 {
-                                        // Custom layout for last row: make "0" double-width and move "=" to the far right
-                                        let spacing = buttonSpacing
-                                        // Identify buttons in the row
-                                        let zero = CalculatorButton.digit("0")
-                                        let dot = CalculatorButton.dot
-                                        let plus = CalculatorButton.operation("+")
-                                        let equals = CalculatorButton.equals
-
-                                        CalculatorButtonView(button: zero, size: buttonSize, width: buttonSize * 2 + spacing) { buttonTapped(zero) }
-                                        CalculatorButtonView(button: dot, size: buttonSize, width: nil) { buttonTapped(dot) }
-                                        CalculatorButtonView(button: plus, size: buttonSize, width: nil) { buttonTapped(plus) }
-                                        CalculatorButtonView(button: equals, size: buttonSize, width: nil) { buttonTapped(equals) }
-                                    } else {
-                                        ForEach(colArray, id: \.0) { colIndex, button in
-                                            CalculatorButtonView(button: button, size: buttonSize, width: nil) { buttonTapped(button) }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        ButtonGridView(
+                            keys: keys,
+                            totalButtonRows: totalButtonRows,
+                            totalButtonColumns: totalButtonColumns,
+                            buttonSize: buttonSize,
+                            buttonSpacing: buttonSpacing,
+                            buttonTapped: buttonTapped,
+                            displayPrecision: displayPrecision
+                        )
                         .frame(width: geometry.size.width * 0.55)
                     }
                     .padding()
@@ -100,32 +126,15 @@ struct ContentView: View {
                         .padding(.horizontal)
 
                         // Button grid
-                        VStack(spacing: buttonSpacing) {
-                            let rowArray = Array(buttons.enumerated())
-                            ForEach(rowArray, id: \.0) { rowIndex, rowButtons in
-                                let colArray = Array(rowButtons.enumerated())
-                                HStack(spacing: buttonSpacing) {
-                                    if rowIndex == buttons.count - 1 {
-                                        // Custom layout for last row: make "0" double-width and move "=" to the far right
-                                        let spacing = buttonSpacing
-                                        // Identify buttons in the row
-                                        let zero = CalculatorButton.digit("0")
-                                        let dot = CalculatorButton.dot
-                                        let plus = CalculatorButton.operation("+")
-                                        let equals = CalculatorButton.equals
-
-                                        CalculatorButtonView(button: zero, size: buttonSize, width: buttonSize * 2 + spacing) { buttonTapped(zero) }
-                                        CalculatorButtonView(button: dot, size: buttonSize, width: nil) { buttonTapped(dot) }
-                                        CalculatorButtonView(button: plus, size: buttonSize, width: nil) { buttonTapped(plus) }
-                                        CalculatorButtonView(button: equals, size: buttonSize, width: nil) { buttonTapped(equals) }
-                                    } else {
-                                        ForEach(colArray, id: \.0) { colIndex, button in
-                                            CalculatorButtonView(button: button, size: buttonSize, width: nil) { buttonTapped(button) }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        ButtonGridView(
+                            keys: keys,
+                            totalButtonRows: totalButtonRows,
+                            totalButtonColumns: totalButtonColumns,
+                            buttonSize: buttonSize,
+                            buttonSpacing: buttonSpacing,
+                            buttonTapped: buttonTapped,
+                            displayPrecision: displayPrecision
+                        )
                         .padding(.horizontal)
                     }
                     .padding(.vertical)
@@ -159,10 +168,24 @@ struct ContentView: View {
             if !display.contains(".") { display += display == "0" ? "." : "." }
             lastInputWasOperator = false
         case .operation(let op):
-            computePending()
-            pendingOperator = op
-            accumulator = Double(display) ?? 0
-            lastInputWasOperator = true
+            // Handle unary operations (square root)
+            if op == "√" {
+                if let value = Double(display) {
+                    if value < 0 {
+                        display = "Error"
+                    } else {
+                        let result = sqrt(value)
+                        display = formatNumber(result)
+                    }
+                }
+                lastInputWasOperator = false
+            } else {
+                // Handle binary operations
+                computePending()
+                pendingOperator = op
+                accumulator = Double(display) ?? 0
+                lastInputWasOperator = true
+            }
         case .equals:
             computePending()
             pendingOperator = nil
@@ -184,22 +207,70 @@ struct ContentView: View {
             case "MC": memory = 0
             default: break
             }
+        case .toggleSign:
+            if let value = Double(display) {
+                let toggled = -value
+                display = formatNumber(toggled)
+            }
+            lastInputWasOperator = false
+        case .precision:
+            // Set display precision based on current display value
+            if let precisionValue = Int(display) {
+                if precisionValue >= 0 && precisionValue <= 15 {
+                    displayPrecision = precisionValue
+                } else if precisionValue < 0 {
+                    displayPrecision = 0
+                } else {
+                    displayPrecision = 15
+                }
+            }
+            display = "0"
+            lastInputWasOperator = false
         case .blank:
             break
+        }
+    }
+    
+    // Format number based on precision setting
+    func formatNumber(_ value: Double) -> String {
+        if let precision = displayPrecision {
+            return String(format: "%.\(precision)f", value)
+        } else {
+            // No precision set - preserve integer formatting if possible
+            if value.truncatingRemainder(dividingBy: 1) == 0 {
+                return String(Int(value))
+            } else {
+                return String(value)
+            }
         }
     }
 
     func computePending() {
         guard let op = pendingOperator, let rhs = Double(display) else { return }
         let lhs = accumulator
+        let result: Double
         switch op {
-        case "+": display = String(lhs + rhs)
-        case "-": display = String(lhs - rhs)
-        case "*": display = String(lhs * rhs)
+        case "+": result = lhs + rhs
+        case "-": result = lhs - rhs
+        case "*": result = lhs * rhs
         case "/":
-            display = rhs == 0 ? "Error" : String(lhs / rhs)
-        default: break
+            if rhs == 0 {
+                display = "Error"
+                return
+            }
+            result = lhs / rhs
+        case "%":
+            // Calculate percentage: lhs % rhs = (lhs / rhs) * 100
+            // Example: 5 % 10 = (5 / 10) * 100 = 50
+            if rhs == 0 {
+                display = "Error"
+                return
+            }
+            result = (lhs / rhs) * 100
+        default:
+            return
         }
+        display = formatNumber(result)
     }
     
     func handleKeyPress(_ key: String) {
@@ -229,74 +300,12 @@ struct ContentView: View {
     }
 }
 
-// Calculator button types and appearance
-enum CalculatorButton: Equatable {
-    case digit(String)
-    case operation(String)
-    case equals
-    case dot
-    case clearEntry
-    case clear
-    case backspace
-    case memory(String)
-    case blank
-}
 
-struct CalculatorButtonView: View {
-    let button: CalculatorButton
-    let size: CGFloat
-    let width: CGFloat?
-    let action: () -> Void
+// ---------------------------------------------------------------------------
 
-    var body: some View {
-        Button(action: action) {
-            Text(buttonTitle)
-                .font(.system(size: 26, weight: .semibold))
-                .frame(width: width ?? size, height: size)
-                .background(buttonBackground)
-                .foregroundColor(buttonForeground)
-                .cornerRadius(8)
-        }
-        .disabled(button == .blank)
-        .opacity(button == .blank ? 0 : 1)
-    }
 
-    var buttonTitle: String {
-        switch button {
-        case .digit(let n): return n
-        case .operation(let op): return op
-        case .equals: return "="
-        case .dot: return "."
-        case .clearEntry: return "CE"
-        case .clear: return "C"
-        case .backspace: return "⌫"
-        case .memory(let m): return m
-        case .blank: return ""
-        }
-    }
 
-    var buttonBackground: Color {
-        switch button {
-        case .clear: return Color.orange
-        case .clearEntry: return Color.yellow
-        case .operation, .equals: return Color.gray.opacity(0.8)
-        case .memory: return Color.gray.opacity(0.5)
-        case .digit: return Color(white: 0.3)
-        case .backspace: return Color.gray.opacity(0.6)
-        case .dot: return Color(white: 0.3)
-        case .blank: return Color.clear
-        }
-    }
-
-    var buttonForeground: Color {
-        switch button {
-        case .clear, .clearEntry: return .black
-        case .digit, .dot: return .white
-        case .equals: return .white
-        default: return .black
-        }
-    }
-}
+// ---------------------------------------------------------------------------
 
 #Preview {
     ContentView()
