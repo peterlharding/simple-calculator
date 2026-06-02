@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var memory: Double = 0
     @State private var keyPressed: String = ""
     @State private var displayPrecision: Int? = nil // nil means no precision limit
+    @State private var orientation = UIDeviceOrientation.unknown
 
 
     let totalButtonColumns = 6
@@ -155,6 +156,9 @@ struct ContentView: View {
                 .submitLabel(.done)
         }
         .background(Color(white: 0.8).ignoresSafeArea())
+        .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+            orientation = UIDevice.current.orientation
+        }
     }
 
     // Calculator actions

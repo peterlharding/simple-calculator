@@ -14,6 +14,12 @@ struct CalculatorApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    // Enable all orientations
+                    #if os(iOS)
+                    UIDevice.current.setValue(UIInterfaceOrientation.unknown.rawValue, forKey: "orientation")
+                    #endif
+                }
         }
     }
 }

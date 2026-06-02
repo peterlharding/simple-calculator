@@ -46,7 +46,7 @@ struct CalculatorButtonView: View {
             if let precision = displayPrecision {
                 return ".\(precision)"
             } else {
-                return "Prec"
+                return ".P"
             }
         case .blank: return ""
         }
